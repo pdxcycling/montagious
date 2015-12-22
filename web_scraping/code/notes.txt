@@ -1,0 +1,3 @@
+TODOs:
+1. Make vine and youtube child classes of scraper
+2. Remove the API/Secret keys in the files.
