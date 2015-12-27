@@ -14,7 +14,7 @@ import pandas as pd
 ## TODO: The duration of the video is in ISO8601 format. Yay for standards!
 
 class YouTubeScraper(object):
-    DEVELOPER_KEY = "" ## TODO: get developer key
+    DEVELOPER_KEY = "AIzaSyAVJTKFIbA9AY5PG5ZAPugd9Exmhj_hV6s"
     YOUTUBE_API_SERVICE_NAME = "youtube"
     YOUTUBE_API_VERSION = "v3"
 
@@ -31,7 +31,8 @@ class YouTubeScraper(object):
         '''
         Run search query
         '''
-        query = 'gopro,snowboarding'
+        #query = 'gopro,snowboarding'
+        query = query
         num_results = 0
         result_list = []
         next_page_token = None

@@ -115,6 +115,7 @@ class VideoUtilities():
             # Store the result
             frame_series = pd.Series()
             frame_series['time'] = cap.get(cv2.cv.CV_CAP_PROP_POS_MSEC) / 1000.
+            #frame_series['frame_number'] = cap.get(cv2.cv.
             frame_series['pt_pos(t)'] = p1      ## Current position of feature points
             frame_series['pt_pos(t-1)'] = p0    ## Previous position of feature points
             frame_series['st'] = st
@@ -126,6 +127,58 @@ class VideoUtilities():
             i_frame += 1
 
         return flow_df
+
+    @staticmethod
+    def optical_flow_on_frame(frame, prev_frame, stride=1, preprocess=True):
+        '''
+        INPUTS:
+        OUTPUT:
+        Returns a Pandas DataFrame with feature point coordinates
+
+        Optical flow - useful for preprocessing
+        Should this go here? Or should this be in preprocessing???
+        Adapted from http://docs.opencv.org/master/d7/d8b/tutorial_py_lucas_kanade.html#gsc.tab=0
+        TODO: Implement stride
+        TODO: Should the distance calculation be done here?
+        TODO: SHould the direction calculation be done here?
+        '''
+        # params for ShiTomasi corner detection
+        feature_params = dict( maxCorners = 50,
+                                qualityLevel = 0.5,
+                                minDistance = 10,
+                                blockSize = 7 )
+
+        # Parameters for lucas kanade optical flow
+        lk_params = dict( winSize  = (15,15),
+                          maxLevel = 5,
+                          criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+
+        ## Ensure frame is in a standardized format
+        if preprocess:
+            frame = VideoUtilities._img_preprocess(frame)
+            prev_frame = VideoUtilities._img_preprocess(prev_frame)
+        ## Find feature points to track across frames
+        p0 = cv2.goodFeaturesToTrack(prev_frame, mask = None, **feature_params)
+
+        ## Output dataframe
+        flow_df = pd.DataFrame()
+
+        # calculate optical flow if feature points exist
+        if p0 is not None:
+            p1, st, err = cv2.calcOpticalFlowPyrLK(prev_frame, frame, p0, None, **lk_params)
+        else:
+            p1, st, err = (None, None, None)
+
+        # Store the result
+        frame_series = pd.Series()
+        frame_series['flow_pt_pos(t)'] = p1      ## Current position of feature points
+        frame_series['flow_pt_pos(t-1)'] = p0    ## Previous position of feature points
+        frame_series['flow_st'] = st
+        frame_series['flow_err'] = err
+        flow_df = flow_df.append(frame_series, ignore_index=True)
+
+        return flow_df
+
 
     @staticmethod
     def _get_flow_distances(flow_df):
