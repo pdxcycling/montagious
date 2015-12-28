@@ -160,22 +160,38 @@ class VideoUtilities():
         ## Find feature points to track across frames
         p0 = cv2.goodFeaturesToTrack(prev_frame, mask = None, **feature_params)
 
-        ## Output dataframe
-        flow_df = pd.DataFrame()
-
         # calculate optical flow if feature points exist
         if p0 is not None:
             p1, st, err = cv2.calcOpticalFlowPyrLK(prev_frame, frame, p0, None, **lk_params)
         else:
             p1, st, err = (None, None, None)
 
-        # Store the result
-        frame_series = pd.Series()
-        frame_series['flow_pt_pos(t)'] = p1      ## Current position of feature points
-        frame_series['flow_pt_pos(t-1)'] = p0    ## Previous position of feature points
-        frame_series['flow_st'] = st
-        frame_series['flow_err'] = err
-        flow_df = flow_df.append(frame_series, ignore_index=True)
+        ## Output dataframe
+        flow_df = pd.DataFrame()
+
+        # Check that optical flow was able to track points
+        if p0 is not None:
+            # Store the result as one point per row
+            for pt0_array, pt1_array, st_array, err_array in zip(p0, p1, st, err):
+                ## Cleaning up messy nested arrays
+                pt0 = pt0_array[0]
+                pt1 = pt1_array[0]
+                pt_st = st_array[0]       ## per point st
+                pt_err = err_array[0]     ## per point err
+
+                frame_series = pd.Series()
+                frame_series['flow_pt_pos(t)'] = pt1      ## Current position of feature points
+                frame_series['flow_pt_pos(t-1)'] = pt0    ## Previous position of feature points
+                frame_series['flow_st'] = pt_st
+                frame_series['flow_err'] = pt_err
+                flow_df = flow_df.append(frame_series, ignore_index=True)
+            # Return default values when optical flow is not successful
+            else:
+                frame_series = pd.Series()
+                frame_series['flow_pt_pos(t)'] = None      ## Current position of feature points
+                frame_series['flow_pt_pos(t-1)'] = None    ## Previous position of feature points
+                frame_series['flow_st'] = None
+                frame_series['flow_err'] = None
 
         return flow_df
 
