@@ -34,6 +34,12 @@ class VideoAnalysis(object):
               This creates our training set
               Then we train a model on this
         '''
+        ## Create output array, initialize with all zeros
+        time_df = pd.DataFrame(time_pd_series)
+        time_df.columns = ["time"]
+        out_df = time_df.copy()
+        out_df['is_scene_transition'] = 0
+
         ## Use the bash script to call ffprobe, a utility for detecting scene changes
         p = Popen(["bash", "ffprobe_script.bash", video_file_path], stdout=PIPE, stderr=PIPE)
         output, err = p.communicate()
@@ -42,17 +48,15 @@ class VideoAnalysis(object):
         #import pdb; pdb.set_trace()
 
         scene_trans_df = pd.DataFrame(output.split()[2:])
-        scene_trans_df.columns = ["time"]
-        scene_trans_df.time = scene_trans_df.time.apply(lambda x: float(x))
+        ## Check that scene transitions occur
+        if not scene_trans_df.empty:
+            scene_trans_df.columns = ["time"]
+            scene_trans_df.time = scene_trans_df.time.apply(lambda x: float(x))
 
-        time_df = pd.DataFrame(time_pd_series)
-        time_df.columns = ["time"]
-        out_df = time_df.copy()
-        out_df['is_scene_transition'] = 0
-        for scene_time in scene_trans_df.time:
-            closest_pt = out_df.ix[(time_df.time - scene_time).abs().argsort()[:1]]
-            index = int(closest_pt.index[0])
-            out_df['is_scene_transition'][index] = 1
+            for scene_time in scene_trans_df.time:
+                closest_pt = out_df.ix[(time_df.time - scene_time).abs().argsort()[:1]]
+                index = int(closest_pt.index[0])
+                out_df['is_scene_transition'][index] = 1
 
         return out_df
 
